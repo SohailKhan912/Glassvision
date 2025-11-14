@@ -10,10 +10,11 @@ interface CartItem {
   material: string
   frame: string
   finish: string
+  handle?: string
   features: string[]
   price: number
   quantity: number
-  modelName: string
+  modelName?: string
 }
 
 interface CartContextType {

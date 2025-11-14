@@ -1,31 +1,40 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Menu, X, ShoppingCart, Heart } from "lucide-react"
-import { useCart } from "@/components/cart-context"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Menu, X, ShoppingCart, Heart } from "lucide-react";
+import { useCart } from "@/components/cart-context";
+import { useRouter } from "next/navigation";
 
 export function Navigation() {
-  const [isOpen, setIsOpen] = useState(false)
-  const { itemCount } = useCart()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const router = useRouter()
+  const [isOpen, setIsOpen] = useState(false);
+  const { itemCount } = useCart();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const router = useRouter();
 
+  // ✅ Detect login state on load
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token")
-      setIsLoggedIn(!!token)
-    }
-  }, [])
+    const sync = () => setIsLoggedIn(!!localStorage.getItem("token"));
+    sync();
+    const onStorage = () => sync();
+    const onAuthChanged = () => sync();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("auth-changed", onAuthChanged as any);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("auth-changed", onAuthChanged as any);
+    };
+  }, []);
 
+  // ✅ Logout handler
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    setIsLoggedIn(false)
-    router.push("/") // redirect after logout
-  }
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setIsLoggedIn(false);
+    try { window.dispatchEvent(new Event("auth-changed")); } catch {}
+    router.push("/");
+  };
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
@@ -61,6 +70,7 @@ export function Navigation() {
                 <Heart className="w-5 h-5" />
               </Button>
             </Link>
+
             <Link href="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="w-5 h-5" />
@@ -71,9 +81,13 @@ export function Navigation() {
                 )}
               </Button>
             </Link>
+
             <Link href="/checkout">
-              <Button className="hidden md:flex bg-primary hover:bg-primary/90">Checkout</Button>
+              <Button className="hidden md:flex bg-primary hover:bg-primary/90">
+                Checkout
+              </Button>
             </Link>
+
             {isLoggedIn ? (
               <Button
                 onClick={handleLogout}
@@ -82,17 +96,20 @@ export function Navigation() {
                 Logout
               </Button>
             ) : (
-              <Link href="/login">
-                <Button className="hidden md:flex bg-primary hover:bg-primary/90">Login</Button>
-              </Link>
+              <>
+                <Link href="/login">
+                  <Button className="hidden md:flex bg-primary hover:bg-primary/90">Login</Button>
+                </Link>
+                <Link href="/register">
+                  <Button className="hidden md:flex bg-primary hover:bg-primary/90">Register</Button>
+                </Link>
+              </>
             )}
+
+            {/* Mobile menu toggle */}
             <button onClick={() => setIsOpen(!isOpen)} className="md:hidden">
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <Link href="/register">
-  <Button className="hidden md:flex bg-primary hover:bg-primary/90">Register</Button>
-</Link>
-
           </div>
         </div>
 
@@ -125,13 +142,18 @@ export function Navigation() {
                 Logout
               </Button>
             ) : (
-              <Link href="/login">
-                <Button className="w-full bg-primary hover:bg-primary/90">Login</Button>
-              </Link>
+              <>
+                <Link href="/login">
+                  <Button className="w-full bg-primary hover:bg-primary/90">Login</Button>
+                </Link>
+                <Link href="/register">
+                  <Button className="w-full bg-primary hover:bg-primary/90">Register</Button>
+                </Link>
+              </>
             )}
           </div>
         )}
       </div>
     </nav>
-  )
+  );
 }

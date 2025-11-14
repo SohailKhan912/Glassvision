@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -7,6 +10,39 @@ import { Textarea } from "@/components/ui/textarea"
 import { Mail, Phone, MapPin, Clock, MessageSquare } from "lucide-react"
 
 export default function ContactPage() {
+  const [submitting, setSubmitting] = useState(false)
+  const [ok, setOk] = useState<string>("")
+  const [err, setErr] = useState<string>("")
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", subject: "", message: "" })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.id]: e.target.value })
+  }
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErr("")
+    setOk("")
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || "Failed to send message")
+      }
+      setOk("Thanks! Your message has been sent.")
+      setForm({ firstName: "", lastName: "", email: "", phone: "", subject: "", message: "" })
+    } catch (e: any) {
+      setErr(e.message || "Something went wrong")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -70,41 +106,43 @@ export default function ContactPage() {
         <div className="grid lg:grid-cols-2 gap-12">
           <div>
             <h2 className="text-2xl font-bold mb-6">Send us a Message</h2>
-            <form className="space-y-6">
+            {ok && <p className="text-green-600 bg-green-50 border border-green-200 p-2 rounded mb-4 text-sm">{ok}</p>}
+            {err && <p className="text-red-600 bg-red-50 border border-red-200 p-2 rounded mb-4 text-sm">{err}</p>}
+            <form className="space-y-6" onSubmit={onSubmit}>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="John" />
+                  <Input id="firstName" placeholder="John" value={form.firstName} onChange={handleChange} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Doe" />
+                  <Input id="lastName" placeholder="Doe" value={form.lastName} onChange={handleChange} required />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="john@example.com" />
+                <Input id="email" type="email" placeholder="john@example.com" value={form.email} onChange={handleChange} required />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" type="tel" placeholder="+91 98765 43210" />
+                <Input id="phone" type="tel" placeholder="+91 98765 43210" value={form.phone} onChange={handleChange} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="subject">Subject</Label>
-                <Input id="subject" placeholder="How can we help?" />
+                <Input id="subject" placeholder="How can we help?" value={form.subject} onChange={handleChange} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="message">Message</Label>
-                <Textarea id="message" placeholder="Tell us more about your inquiry..." rows={6} />
+                <Textarea id="message" placeholder="Tell us more about your inquiry..." rows={6} value={form.message} onChange={handleChange} required />
               </div>
 
-              <Button type="submit" className="w-full">
+              <Button type="submit" disabled={submitting} className="w-full">
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Send Message
+                {submitting ? "Sending..." : "Send Message"}
               </Button>
             </form>
           </div>

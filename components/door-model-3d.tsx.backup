@@ -1,0 +1,17 @@
+"use client"
+
+// Temporarily stubbed to avoid bundler / Turbopack parsing of heavy Three.js modules.
+// This prevents build-time panics while we iteratively reintroduce 3D features.
+
+type Props = { config?: any }
+
+export default function DoorModel3D({ config }: Props) {
+  return (
+    <div className="w-full min-h-[520px] h-[600px] bg-gray-50 rounded-lg flex items-center justify-center border border-dashed">
+      <div className="text-center">
+        <p className="text-sm text-muted-foreground">3D viewer temporarily disabled for stability.</p>
+        <p className="text-xs text-muted-foreground mt-2">AR / 3D components will be re-enabled after bundler issues are resolved.</p>
+      </div>
+    </div>
+  )
+}

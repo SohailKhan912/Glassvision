@@ -4,82 +4,140 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Register() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
+    setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", 
-        {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
+      let res: Response | null = null;
+      try {
+        res = await fetch(`/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+      } catch {}
+      if (!res || !res.ok) {
+        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
+        res = await fetch(`${API_BASE}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Registration failed" }));
+        throw new Error(errorData.message || "Registration failed");
+      }
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
-
       setSuccess("Registration successful! Redirecting to login...");
-      setTimeout(() => router.push("/login"), 1500);
+      // Always go to login after register (no auto-login)
+      setTimeout(() => router.push("/login"), 1200);
     } catch (err: any) {
-      setError(err.message);
+      console.error("Registration Error:", err);
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50">
+    <main className="flex items-center justify-center min-h-screen bg-gray-50">
       <form
-        onSubmit={handleRegister}
-        className="bg-white p-6 rounded-xl shadow-md w-80 space-y-4"
+        onSubmit={handleSubmit}
+        autoComplete="off"
+        className="bg-white shadow-lg p-6 rounded-xl w-96 space-y-4"
       >
-        <h2 className="text-2xl font-bold text-center">Register</h2>
-        {error && <p className="text-red-500 text-center">{error}</p>}
-        {success && <p className="text-green-600 text-center">{success}</p>}
+        <h2 className="text-2xl font-bold text-center text-gray-800">Register</h2>
+        {success && (
+          <p className="text-green-600 text-sm text-center bg-green-50 p-2 rounded">
+            {success}
+          </p>
+        )}
+        {error && (
+          <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">
+            {error}
+          </p>
+        )}
 
-        <input
-          className="w-full border p-2 rounded"
-          type="text"
-          placeholder="Full Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium mb-1">Full Name</label>
+          <input
+            type="text"
+            name="name"
+            placeholder="John Doe"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            autoComplete="new-name"
+          />
+        </div>
 
-        <input
-          className="w-full border p-2 rounded"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium mb-1">Email</label>
+          <input
+            type="email"
+            name="email"
+            placeholder="you@example.com"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            autoComplete="new-email"
+          />
+        </div>
 
-        <input
-          className="w-full border p-2 rounded"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div>
+          <label className="block text-sm font-medium mb-1">Password</label>
+          <input
+            type="password"
+            name="password"
+            placeholder="********"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            autoComplete="new-password"
+          />
+        </div>
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-blue-400 transition"
         >
-          Sign Up
+          {loading ? "Creating Account..." : "Sign Up"}
         </button>
+
+        <p className="text-sm text-center text-gray-500">
+          Already have an account?{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/login")}
+            className="text-blue-600 hover:underline"
+          >
+            Login
+          </button>
+        </p>
       </form>
     </main>
   );

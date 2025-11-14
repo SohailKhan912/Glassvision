@@ -28,45 +28,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  useEffect(() => {
-    // Check for stored auth
-    if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("token")
-      const storedUser = localStorage.getItem("user")
-
+  function loadFromStorage() {
+    try {
+      if (typeof window === "undefined") return
+      const storedToken = localStorage.getItem("token") || localStorage.getItem("adminToken")
+      const storedUser = localStorage.getItem("user") || localStorage.getItem("admin")
       if (storedToken && storedUser) {
         setToken(storedToken)
-        try {
-          const parsedUser = JSON.parse(storedUser)
-          setUser(parsedUser)
-          // Verify token is still valid
-          authAPI
-            .getMe()
-            .then((response) => {
-              const userData = response.user || response
-              setUser(userData)
-              // Update localStorage with fresh user data
-              localStorage.setItem("user", JSON.stringify(userData))
-            })
-            .catch(() => {
-              // Token invalid, clear storage
-              localStorage.removeItem("token")
-              localStorage.removeItem("user")
-              setToken(null)
-              setUser(null)
-            })
-            .finally(() => setLoading(false))
-        } catch {
-          // Invalid user data, clear storage
-          localStorage.removeItem("token")
-          localStorage.removeItem("user")
-          setToken(null)
-          setUser(null)
-          setLoading(false)
-        }
+        setUser(JSON.parse(storedUser))
       } else {
-        setLoading(false)
+        setToken(null)
+        setUser(null)
       }
+    } catch (err) {
+      console.log("Error reading auth from storage:", err)
+    }
+  }
+
+  useEffect(() => {
+    // Only run on client side, not during build
+    if (typeof window === "undefined") {
+      setLoading(false)
+      return
+    }
+
+    try {
+      loadFromStorage()
+    } finally {
+      setLoading(false)
+    }
+
+    const onStorage = () => loadFromStorage()
+    const onAuthChanged = () => loadFromStorage()
+    window.addEventListener("storage", onStorage)
+    window.addEventListener("auth-changed", onAuthChanged as any)
+    return () => {
+      window.removeEventListener("storage", onStorage)
+      window.removeEventListener("auth-changed", onAuthChanged as any)
     }
   }, [])
 
@@ -75,6 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.setItem("token", response.token)
       localStorage.setItem("user", JSON.stringify(response.user || response))
+      if ((response.user || response)?.role === "admin") {
+        localStorage.setItem("adminToken", response.token)
+        localStorage.setItem("admin", JSON.stringify(response.user || response))
+      }
+      try { window.dispatchEvent(new Event("auth-changed")) } catch {}
     }
     setToken(response.token)
     setUser(response.user || response)
@@ -84,10 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.removeItem("token")
       localStorage.removeItem("user")
+      localStorage.removeItem("adminToken")
+      localStorage.removeItem("admin")
+      try { window.dispatchEvent(new Event("auth-changed")) } catch {}
     }
     setToken(null)
     setUser(null)
-    router.push("/admin/login")
+    router.push("/")
   }
 
   return (

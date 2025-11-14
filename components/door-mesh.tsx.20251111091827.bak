@@ -1,0 +1,133 @@
+"use client"
+
+import { useRef } from "react"
+import { useFrame } from "@react-three/fiber"
+import * as THREE from "three"
+import type { DoorConfig } from "./door-configurator"
+
+type Props = {
+  config: DoorConfig
+}
+
+export function DoorMesh({ config }: Props) {
+  const doorRef = useRef<THREE.Group>(null)
+
+  useFrame((state) => {
+    if (doorRef.current) {
+      doorRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.2) * 0.1
+    }
+  })
+
+  const width = config.width / 1000
+  const height = config.height / 1000
+  const depth = 0.05
+
+  const getGlassMaterial = () => {
+    const baseConfig = {
+      transparent: true,
+      side: THREE.DoubleSide,
+      envMapIntensity: 1,
+    }
+
+    switch (config.glassMaterial) {
+      case "tempered":
+        return {
+          ...baseConfig,
+          color: "#e0f2ff",
+          opacity: 0.3,
+          metalness: 0.1,
+          roughness: 0.1,
+        }
+      case "laminated":
+        return {
+          ...baseConfig,
+          color: "#f0f9ff",
+          opacity: 0.4,
+          metalness: 0,
+          roughness: 0.2,
+        }
+      case "tinted":
+        return {
+          ...baseConfig,
+          color: "#94a3b8",
+          opacity: 0.5,
+          metalness: 0.2,
+          roughness: 0.3,
+        }
+    }
+  }
+
+  const getFrameMaterial = () => {
+    switch (config.frameType) {
+      case "aluminum":
+        return {
+          color: "#64748b",
+          metalness: 0.9,
+          roughness: 0.3,
+        }
+      case "stainless-steel":
+        return {
+          color: "#94a3b8",
+          metalness: 1,
+          roughness: 0.2,
+        }
+      case "wooden":
+        return {
+          color: "#78350f",
+          metalness: 0,
+          roughness: 0.8,
+        }
+    }
+  }
+
+  const glassMaterial = getGlassMaterial()
+  const frameMaterial = getFrameMaterial()
+  const frameWidth = 0.05
+
+  return (
+    <group ref={doorRef} position={[0, height / 2, 0]}>
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[width - frameWidth * 2, height - frameWidth * 2, depth]} />
+        <meshPhysicalMaterial {...glassMaterial} transmission={0.9} thickness={0.5} ior={1.5} />
+      </mesh>
+
+      <mesh position={[0, height / 2 - frameWidth / 2, 0]} castShadow>
+        <boxGeometry args={[width, frameWidth, depth + 0.01]} />
+        <meshStandardMaterial {...frameMaterial} />
+      </mesh>
+
+      <mesh position={[0, -height / 2 + frameWidth / 2, 0]} castShadow>
+        <boxGeometry args={[width, frameWidth, depth + 0.01]} />
+        <meshStandardMaterial {...frameMaterial} />
+      </mesh>
+
+      <mesh position={[-width / 2 + frameWidth / 2, 0, 0]} castShadow>
+        <boxGeometry args={[frameWidth, height, depth + 0.01]} />
+        <meshStandardMaterial {...frameMaterial} />
+      </mesh>
+
+      <mesh position={[width / 2 - frameWidth / 2, 0, 0]} castShadow>
+        <boxGeometry args={[frameWidth, height, depth + 0.01]} />
+        <meshStandardMaterial {...frameMaterial} />
+      </mesh>
+
+      <group position={[width / 2 - 0.15, 0, depth / 2 + 0.03]}>
+        <mesh castShadow>
+          <cylinderGeometry args={[0.015, 0.015, 0.15, 16]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh position={[0, 0.08, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+          <cylinderGeometry args={[0.012, 0.012, 0.08, 16]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.2} />
+        </mesh>
+      </group>
+
+      {config.addOns.smartLock && (
+        <mesh position={[width / 2 - 0.15, 0.2, depth / 2 + 0.005]} castShadow>
+          <boxGeometry args={[0.06, 0.08, 0.02]} />
+          <meshStandardMaterial color="#1e40af" emissive="#3b82f6" emissiveIntensity={0.5} />
+        </mesh>
+      )}
+    </group>
+  )
+}

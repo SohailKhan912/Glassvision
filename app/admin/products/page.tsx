@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { productsAPI } from "@/lib/api"
+//
 import { useAuth } from "@/components/auth-provider"
 
 interface Product {
@@ -71,8 +71,9 @@ export default function ProductsManagement() {
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const response = await productsAPI.getAll()
-      setProducts(response.products || [])
+      const res = await fetch("/api/products")
+      const data = await res.json()
+      setProducts(data.products || data || [])
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch products")
     } finally {
@@ -93,7 +94,12 @@ export default function ProductsManagement() {
         features: formData.features ? formData.features.split(",").map((f) => f.trim()) : [],
       }
 
-      await productsAPI.create(productData)
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(productData),
+      })
+      if (!res.ok) throw new Error("Failed to create product")
       toast.success("Product created successfully!")
       setIsAddDialogOpen(false)
       resetForm()
@@ -118,7 +124,13 @@ export default function ProductsManagement() {
         features: formData.features ? formData.features.split(",").map((f) => f.trim()) : [],
       }
 
-      await productsAPI.update(editingProduct._id, productData)
+      const id = (editingProduct as any)._id || (editingProduct as any).id
+      const res = await fetch(`/api/products/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(productData),
+      })
+      if (!res.ok) throw new Error("Failed to update product")
       toast.success("Product updated successfully!")
       setIsEditDialogOpen(false)
       setEditingProduct(null)
@@ -133,7 +145,8 @@ export default function ProductsManagement() {
     if (!confirm("Are you sure you want to delete this product?")) return
 
     try {
-      await productsAPI.delete(id)
+      const res = await fetch(`/api/products/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete product")
       toast.success("Product deleted successfully!")
       fetchProducts()
     } catch (error: any) {
@@ -474,9 +487,13 @@ export default function ProductsManagement() {
                           <td className="py-3 px-4 font-medium">#{product._id.slice(-6)}</td>
                           <td className="py-3 px-4 font-medium">{product.name}</td>
                           <td className="py-3 px-4 text-muted-foreground">{product.style || "N/A"}</td>
-                          <td className="py-3 px-4 font-semibold">₹{product.price.toLocaleString()}</td>
-                          <td className="py-3 px-4">{product.stock} units</td>
-                          <td className="py-3 px-4">{getStatusBadge(product.status)}</td>
+                          <td className="py-3 px-4 font-semibold">₹{Number((product as any).price ?? 0).toLocaleString()}</td>
+                          <td className="py-3 px-4">{Number((product as any).stock ?? 0)} units</td>
+                          {(() => {
+                            const stockNum = Number((product as any).stock ?? 0)
+                            const derived = (product as any).status || (stockNum <= 0 ? "out_of_stock" : stockNum < 5 ? "low_stock" : "active")
+                            return <td className="py-3 px-4">{getStatusBadge(derived)}</td>
+                          })()}
                           <td className="py-3 px-4 flex gap-2">
                             <Button size="sm" variant="ghost" onClick={() => handleEdit(product)}>
                               <Edit className="w-4 h-4" />
@@ -485,7 +502,7 @@ export default function ProductsManagement() {
                               size="sm"
                               variant="ghost"
                               className="text-red-500 hover:text-red-600"
-                              onClick={() => handleDelete(product._id)}
+                              onClick={() => handleDelete(((product as any)._id || (product as any).id) as any)}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

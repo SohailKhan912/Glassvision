@@ -1,43 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { authAPI } from "@/utils/api";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
-      console.log("🚀 Attempting login:", { email, password });
+      let response: Response | null = null;
+      try {
+        response = await fetch(`/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+      } catch {}
+      if (!response || !response.ok) {
+        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
+        response = await fetch(`${API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+      }
 
-      const response = await authAPI.login(email, password);
-      console.log("✅ API Success:", response);
+      console.log("📥 Admin login response status:", response.status);
 
-      // ✅ Fix: Ensure token is directly from `response.token`
-      const token = response?.token;
-
-      if (!token) {
-        console.warn("⚠️ No token received from backend");
-        setError("Login failed — no token received from server");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Login failed" }));
+        console.error("❌ Admin login error:", errorData);
+        setError(errorData.message || "Login failed");
+        setLoading(false);
         return;
       }
 
-      // ✅ Save token properly
-      localStorage.setItem("adminToken", token);
-      console.log("🔐 Token stored:", token);
+      const data = await response.json();
+      console.log("✅ Admin login response:", data);
 
-      // ✅ Redirect
-      router.push("/admin/dashboard");
+      if (data?.token && data?.user) {
+        // Check if user is admin
+        if (data.user.role !== "admin") {
+          console.error("❌ Access denied - not admin:", data.user.role);
+          setError("Access denied. Admin credentials required.");
+          setLoading(false);
+          return;
+        }
+
+        localStorage.setItem("adminToken", data.token);
+        localStorage.setItem("admin", JSON.stringify(data.user));
+        // Keep main auth state in sync so providers and nav see updates immediately
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        try { window.dispatchEvent(new Event("auth-changed")); } catch {}
+        console.log("💾 Admin token saved to localStorage");
+        router.push("/admin/dashboard");
+      } else {
+        console.error("❌ Invalid response format:", data);
+        setError("Login failed - invalid response");
+        setLoading(false);
+      }
     } catch (err: any) {
-      console.error("💥 Login Error:", err);
-      setError(err.message || "Invalid credentials");
+      console.error("❌ Admin login error:", err);
+      setError(err.message || "Network error. Please check if backend is running.");
+      setLoading(false);
     }
   };
 
@@ -45,37 +79,47 @@ export default function AdminLogin() {
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
       <form
         onSubmit={handleLogin}
+        autoComplete="off"
         className="bg-white shadow-md rounded-lg p-8 w-96"
       >
         <h2 className="text-2xl font-bold mb-4 text-center">GlassVision Admin</h2>
 
         {error && (
-          <p className="text-red-500 bg-red-100 border border-red-300 p-2 mb-3 rounded">
+          <div className="text-red-500 bg-red-100 border border-red-300 p-2 mb-3 rounded">
             {error}
-          </p>
+          </div>
         )}
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="border rounded p-2 w-full mb-3"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="border rounded p-2 w-full mb-3"
-          required
-        />
+        <div className="mb-3">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="border rounded p-2 w-full"
+            autoComplete="new-email"
+            required
+          />
+        </div>
+
+        <div className="mb-4">
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="border rounded p-2 w-full"
+            autoComplete="new-password"
+            required
+          />
+        </div>
+
         <button
           type="submit"
-          className="bg-indigo-600 text-white px-4 py-2 rounded w-full hover:bg-indigo-700"
+          disabled={loading}
+          className="bg-indigo-600 text-white px-4 py-2 rounded w-full hover:bg-indigo-700 disabled:opacity-50"
         >
-          Sign In
+          {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
     </div>

@@ -1,0 +1,11 @@
+"use client"
+
+// Lightweight stub to avoid bundler parsing of Three.js during debugging.
+// Returns null (no WebGL content) so dynamic imports that expect DoorMesh won't break.
+
+type Props = { config?: any }
+
+export function DoorMesh({ config }: Props) {
+  // No-op placeholder used while Three.js components are disabled.
+  return null
+}

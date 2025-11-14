@@ -17,6 +17,7 @@ interface PreviewSectionProps {
 
 export function PreviewSection({ config, onAddToCart }: PreviewSectionProps) {
   const [viewMode, setViewMode] = useState<"2d" | "3d" | "ar">("3d")
+  // No external AR viewer script — maintain original AR info layout
 
   // Map UI config -> 3D component config
   const mapConfigTo3D = (cfg: any) => {
@@ -197,7 +198,56 @@ export function PreviewSection({ config, onAddToCart }: PreviewSectionProps) {
             </div>
           </div>
         ) : (
-          <div className="w-full">{/* AR placeholder */}</div>
+          <div className="w-full space-y-6">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-8 text-center">
+              <Camera className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <h4 className="text-lg font-semibold text-blue-900 mb-2">AR Camera View</h4>
+              <p className="text-sm text-blue-700 mb-4">
+                View your door in real-world context using Augmented Reality technology
+              </p>
+              <div className="bg-blue-100 rounded-lg p-6 mb-4 border border-blue-300">
+                <div className="text-center py-12">
+                  <p className="text-sm text-blue-800 font-medium mb-3">AR Features Available:</p>
+                  <ul className="text-xs text-blue-700 space-y-2 inline-block text-left">
+                    <li>✓ Real-time door visualization in your space</li>
+                    <li>✓ Dimension accuracy with measurement tools</li>
+                    <li>✓ Material & finish preview with lighting</li>
+                    <li>✓ Multi-angle rotation and inspection</li>
+                  </ul>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (typeof window !== "undefined") window.open("/ar", "_blank")
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                <Camera className="w-4 h-4 inline mr-2" />
+                Launch AR View
+              </button>
+              <p className="text-xs text-blue-600 mt-4">💡 Tip: AR works best on mobile devices with camera access</p>
+            </div>
+
+            {/* Info cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-5 rounded-lg flex gap-3 border border-primary/20">
+                <Smartphone className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
+                <div>
+                  <p className="font-semibold text-sm mb-1">AR Technology</p>
+                  <p className="text-xs text-muted-foreground">
+                    See your door in your actual space before purchasing. Perfect for planning installations.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-accent/10 to-accent/5 p-5 rounded-lg flex gap-3 border border-accent/20">
+                <Maximize2 className="w-5 h-5 text-accent flex-shrink-0 mt-1" />
+                <div>
+                  <p className="text-sm font-semibold mb-1">Accurate Preview</p>
+                  <p className="text-xs text-muted-foreground">Verify dimensions and finishes in real-world lighting.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </Card>
 

@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye, RefreshCw } from "lucide-react"
+import { Eye, RefreshCw, Search, Filter } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
 
 interface OrdersTableProps {
@@ -13,6 +15,8 @@ interface OrdersTableProps {
 export function OrdersTable({ limit = 10 }: OrdersTableProps) {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [status, setStatus] = useState<string | null>(null)
 
   useEffect(() => {
     fetchOrders()
@@ -64,6 +68,18 @@ export function OrdersTable({ limit = 10 }: OrdersTableProps) {
     }
   }
 
+  const filtered = orders
+    .filter((o) => {
+      const s = search.trim().toLowerCase()
+      if (!s) return true
+      return (
+        (o.orderId || "").toLowerCase().includes(s) ||
+        (o.customerInfo?.email || "").toLowerCase().includes(s) ||
+        (o.customerInfo?.name || "").toLowerCase().includes(s)
+      )
+    })
+    .filter((o) => (status ? (o.status || "").toLowerCase() === status : true))
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -83,54 +99,98 @@ export function OrdersTable({ limit = 10 }: OrdersTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+          <Input
+            placeholder="Search by ID, name, or email"
+            className="pl-9 w-72"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={status || undefined} onValueChange={(v) => setStatus(v || null)}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Filter status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="processing">Processing</SelectItem>
+            <SelectItem value="shipped">Shipped</SelectItem>
+            <SelectItem value="delivered">Delivered</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="sm" onClick={() => fetchOrders()} className="gap-1">
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </Button>
+      </div>
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border">
-            <th className="text-left py-3 px-4 font-semibold">Order ID</th>
-            <th className="text-left py-3 px-4 font-semibold">Customer</th>
-            <th className="text-left py-3 px-4 font-semibold">Items</th>
+            <th className="text-left py-3 px-4 font-semibold">Name</th>
+            <th className="text-left py-3 px-4 font-semibold">Email</th>
+            <th className="text-left py-3 px-4 font-semibold">Phone</th>
             <th className="text-left py-3 px-4 font-semibold">Amount</th>
             <th className="text-left py-3 px-4 font-semibold">Status</th>
-            <th className="text-left py-3 px-4 font-semibold">Date</th>
             <th className="text-left py-3 px-4 font-semibold">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {orders.map((order) => (
-            <tr key={order.orderId} className="border-b border-border hover:bg-muted/50 transition">
-              <td className="py-3 px-4 font-medium">{order.orderId}</td>
-              <td className="py-3 px-4">
-                <div>
-                  <p className="font-medium">{order.customerInfo?.name}</p>
-                  <p className="text-xs text-muted-foreground">{order.customerInfo?.email}</p>
-                </div>
-              </td>
-              <td className="py-3 px-4 text-muted-foreground">{order.items?.length || 0} item(s)</td>
-              <td className="py-3 px-4 font-semibold">₹{order.total?.toLocaleString()}</td>
-              <td className="py-3 px-4">
-                <Badge className={getStatusColor(order.status)}>
-                  {order.status?.charAt(0).toUpperCase() + order.status?.slice(1)}
-                </Badge>
-              </td>
-              <td className="py-3 px-4 text-muted-foreground text-xs">
-                {order.createdAt ? format(new Date(order.createdAt), "MMM dd, yyyy") : "N/A"}
-              </td>
-              <td className="py-3 px-4 flex gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="gap-1"
-                  onClick={() => window.open(`/order-confirmation?orderId=${order.orderId}`, "_blank")}
-                >
-                  <Eye className="w-4 h-4" />
-                  View
-                </Button>
-              </td>
-            </tr>
-          ))}
+          {filtered.map((order, idx) => {
+            const name = order.customerInfo?.name || order.name || "";
+            const email = order.customerInfo?.email || order.email || "";
+            const phone = order.customerInfo?.phone || order.phone || "";
+            const amount = order.total ?? order.amount;
+            const id = order.orderId || order._id || `${email}-${idx}`;
+
+            return (
+              <tr key={id} className="border-b border-border hover:bg-muted/50 transition">
+                <td className="py-3 px-4 font-medium">{name}</td>
+                <td className="py-3 px-4 text-muted-foreground">{email}</td>
+                <td className="py-3 px-4 text-muted-foreground">{phone}</td>
+                <td className="py-3 px-4 font-semibold">{amount ? `₹${Number(amount).toLocaleString()}` : "—"}</td>
+                <td className="py-3 px-4">
+                  <Badge className={getStatusColor(order.status)}>
+                    {(order.status || "pending").toString().charAt(0).toUpperCase() + (order.status || "pending").toString().slice(1)}
+                  </Badge>
+                </td>
+                <td className="py-3 px-4 flex gap-2">
+                  {order.orderId && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1"
+                      onClick={() => window.open(`/order-confirmation?orderId=${order.orderId}`, "_blank")}
+                    >
+                      <Eye className="w-4 h-4" />
+                      View
+                    </Button>
+                  )}
+                  <Select onValueChange={(v) => updateOrderStatus(order.orderId || order._id, v)}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Update status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="shipped">Shipped</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

@@ -1,129 +1,159 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CreditCard, AlertCircle, Loader2, CheckCircle } from "lucide-react"
-import { useCart } from "@/components/cart-context"
-import { useRouter } from "next/navigation"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CreditCard, AlertCircle, Loader2 } from "lucide-react";
+import { useCart } from "@/components/cart-context";
+import { useRouter } from "next/navigation";
 
 declare global {
   interface Window {
-    Razorpay: any
+    Razorpay: any;
   }
 }
 
 interface RazorpayCheckoutFormProps {
-  finalTotal?: number
+  finalTotal?: number;
 }
 
 export function RazorpayCheckoutForm({ finalTotal }: RazorpayCheckoutFormProps) {
-  const router = useRouter()
-  const { items, total, clearCart } = useCart()
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter();
+  const { items, total, clearCart } = useCart();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    email: "",
     customerName: "",
+    email: "",
     phone: "",
-    address: "",
-    city: "",
-    pincode: "",
-  })
+  });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+  const amount = Math.round(finalTotal || total);
 
-  const handleDummyPayment = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsProcessing(true)
+  // ✅ Load Razorpay SDK dynamically
+  const loadRazorpayScript = () => {
+    return new Promise<boolean>((resolve) => {
+      if (document.getElementById("razorpay-script")) return resolve(true);
+      const script = document.createElement("script");
+      script.id = "razorpay-script";
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // ✅ Handle Payment
+  const handlePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsProcessing(true);
+
+    const loaded = await loadRazorpayScript();
+    if (!loaded) {
+      setError("Failed to load Razorpay SDK. Please check your internet.");
+      setIsProcessing(false);
+      return;
+    }
 
     try {
-      const paymentAmount = finalTotal || total
-      const subtotal = total
-      const gst = subtotal * 0.18
-      const shipping = subtotal > 50000 ? 0 : 1500
+      // Determine backend address
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || `${window.location.protocol}//${window.location.hostname}:5000`
 
-      const orderResponse = await fetch("/api/razorpay/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: paymentAmount, email: formData.email, customerName: formData.customerName, items }),
-      })
-
-      if (!orderResponse.ok) {
-        const msg = await orderResponse.json().catch(() => ({} as any))
-        throw new Error((msg as any).message || "Failed to create Razorpay order")
-      }
-
-      const razorpayOrderData = await orderResponse.json()
-
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || ""
-      const endpoint = baseUrl ? `${baseUrl}/orders` : "/api/orders"
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items,
-          subtotal: Math.round(subtotal),
-          gst: Math.round(gst),
-          shipping,
-          total: Math.round(paymentAmount),
-          customerInfo: { email: formData.email, name: formData.customerName, phone: formData.phone },
-          razorpayOrderId: razorpayOrderData.razorpayOrderId,
-          shippingAddress: { address: formData.address, city: formData.city, pincode: formData.pincode },
-        }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error((data as any).message || "Failed to create order")
-      }
-
-      const orderId = (data as any).order?.orderId || (data as any).orderId
-      const dummyPaymentId = `pay_DUMMY_${Date.now()}`
-
+      // Try Next.js API route first (proxy), fallback to direct backend
+      let res
       try {
-        await fetch("/api/email/send-confirmation", {
+        res = await fetch(`/api/payment/order`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: formData.email,
-            orderId,
-            paymentId: dummyPaymentId,
-            customerName: formData.customerName,
-            amount: paymentAmount,
-            items,
-            shippingAddress: { address: formData.address, city: formData.city, pincode: formData.pincode },
-          }),
+          body: JSON.stringify({ amount }),
         })
-      } catch {}
+        
+        // If proxy fails, try direct backend
+        if (!res.ok) {
+          res = await fetch(`${API_BASE}/api/payment/order`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount }),
+          })
+        }
+      } catch (err) {
+        // Fallback to direct backend
+        res = await fetch(`${API_BASE}/api/payment/order`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount }),
+        })
+      }
 
-      clearCart()
-      setTimeout(() => {
-        router.push(`/order-confirmation?orderId=${orderId}&paymentId=${dummyPaymentId}&isDummy=true`)
-      }, 300)
+      if (!res.ok) {
+        const text = await res.text().catch(() => "<no body>")
+        throw new Error(`Order API returned ${res.status}: ${text}`)
+      }
+
+      const data = await res.json()
+      if (!data || !data.success) {
+        throw new Error(data.message || "Failed to create Razorpay order")
+      }
+
+      // Handle both response formats: { success: true, order: {...} } or direct order object
+      const orderData = data.order || data
+      if (!orderData || !orderData.id) {
+        throw new Error("Invalid order response from server")
+      }
+
+      // ✅ Configure Razorpay checkout
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_ReokCLfMpqXrNh",
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+        name: "GlassVision",
+        description: "Glass Door Booking Payment",
+        order_id: orderData.id,
+        prefill: {
+          name: formData.customerName || "Guest User",
+          email: formData.email || "guest@example.com",
+          contact: formData.phone || "9999999999",
+        },
+        theme: { color: "#0d9488" },
+
+        // ✅ Redirect to success page on payment
+        handler: function (response: any) {
+          console.log("Payment successful:", response);
+          const { razorpay_order_id, razorpay_payment_id } = response;
+          clearCart();
+
+          // Redirect to the new styled success page
+          window.location.href = `/order-success?order_id=${razorpay_order_id || orderData.id}&payment_id=${razorpay_payment_id || 'mock'}&name=${encodeURIComponent(
+            formData.customerName
+          )}&email=${encodeURIComponent(formData.email)}&amount=${amount}`;
+        },
+        // Handle payment errors
+        modal: {
+          ondismiss: function() {
+            console.log("Payment cancelled by user");
+            setIsProcessing(false);
+          }
+        }
+      };
+
+      // Open Razorpay checkout popup
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (err) {
-      console.error("[v0] Dummy checkout error:", err)
-      setError(err instanceof Error ? err.message : "Checkout failed")
-      setIsProcessing(false)
+      console.error("Payment init error:", err);
+      setError("Something went wrong during payment initialization.");
+    } finally {
+      setIsProcessing(false);
     }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await handleDummyPayment(e)
-  }
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="w-5 h-5" />
-          Payment Details
+          Booking & Payment
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -134,27 +164,14 @@ export function RazorpayCheckoutForm({ finalTotal }: RazorpayCheckoutFormProps) 
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="your@email.com"
-              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              required
-            />
-          </div>
-
+        <form onSubmit={handlePayment} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Full Name</label>
             <input
               type="text"
               name="customerName"
               value={formData.customerName}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
               placeholder="John Doe"
               className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               required
@@ -162,67 +179,29 @@ export function RazorpayCheckoutForm({ finalTotal }: RazorpayCheckoutFormProps) 
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Phone Number</label>
+            <label className="block text-sm font-medium mb-1">Email</label>
             <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="9876543210"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="you@example.com"
               className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               required
             />
           </div>
 
-          <div className="border-t pt-4 space-y-3">
-            <h3 className="font-semibold text-sm">Shipping Address</h3>
-            <div>
-              <label className="block text-sm font-medium mb-1">Street Address</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="123 Main Street"
-                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">City</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="Mumbai"
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Pincode</label>
-                <input
-                  type="text"
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleChange}
-                  placeholder="400001"
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-2 p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
-            <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <p>
-              Test Mode: Using dummy payment for demonstration. Click "Pay" to confirm booking and receive confirmation
-              email.
-            </p>
+          <div>
+            <label className="block text-sm font-medium mb-1">Phone</label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="9876543210"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              required
+            />
           </div>
 
           <Button
@@ -237,11 +216,11 @@ export function RazorpayCheckoutForm({ finalTotal }: RazorpayCheckoutFormProps) 
                 Processing Payment...
               </>
             ) : (
-              `Pay ₹${(finalTotal || total).toLocaleString()}`
+              `Pay ₹${amount.toLocaleString()}`
             )}
           </Button>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

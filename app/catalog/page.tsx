@@ -9,7 +9,7 @@ import { useState } from "react"
 export default function CatalogPage() {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null)
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
-  const [priceRange, setPriceRange] = useState([0, 5000])
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000])
 
   return (
     <div className="min-h-screen bg-background">

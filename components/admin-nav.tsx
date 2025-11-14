@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Menu, X, LogOut, LayoutDashboard, Package, Users } from "lucide-react"
+import { Menu, X, LogOut, LayoutDashboard, Package, Users, MessageSquare } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 
 export function AdminNav() {
@@ -41,6 +41,12 @@ export function AdminNav() {
                 Customers
               </Button>
             </Link>
+            <Link href="/admin/feedback">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Feedback
+              </Button>
+            </Link>
             <div className="w-px h-6 bg-border mx-2" />
             <Button variant="ghost" size="sm" className="gap-2" onClick={logout}>
               <LogOut className="w-4 h-4" />
@@ -72,6 +78,12 @@ export function AdminNav() {
               <Button variant="ghost" className="w-full justify-start gap-2">
                 <Users className="w-4 h-4" />
                 Customers
+              </Button>
+            </Link>
+            <Link href="/admin/feedback">
+              <Button variant="ghost" className="w-full justify-start gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Feedback
               </Button>
             </Link>
             <Button variant="ghost" className="w-full justify-start gap-2" onClick={logout}>

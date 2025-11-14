@@ -31,11 +31,9 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-// Hash password before saving (only if password is modified)
+// ✅ Hash password before saving (only if modified)
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
-    return next()
-  }
+  if (!this.isModified("password")) return next()
   try {
     const salt = await bcrypt.genSalt(10)
     this.password = await bcrypt.hash(this.password, salt)
@@ -45,9 +43,10 @@ userSchema.pre("save", async function (next) {
   }
 })
 
-// Compare password method
+// ✅ Compare password method
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password)
 }
 
+// ✅ Export model
 module.exports = mongoose.models.User || mongoose.model("User", userSchema)

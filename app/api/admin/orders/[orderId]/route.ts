@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
 
-export async function PATCH(request: Request, { params }: { params: { orderId: string } }) {
+export async function PATCH(request: NextRequest, context: { params: Promise<{ orderId: string }> }) {
   try {
     const { status } = await request.json()
+    const { orderId } = await context.params
     const db = await getDatabase()
     const ordersCollection = db.collection("orders")
 
     const result = await ordersCollection.updateOne(
-      { orderId: params.orderId },
+      { orderId },
       {
         $set: {
           status,
@@ -21,7 +22,7 @@ export async function PATCH(request: Request, { params }: { params: { orderId: s
       return NextResponse.json({ success: false, error: "Order not found" }, { status: 404 })
     }
 
-    console.log(`[v0] Updated order ${params.orderId} status to ${status}`)
+    console.log(`[v0] Updated order ${orderId} status to ${status}`)
 
     return NextResponse.json({ success: true })
   } catch (error) {

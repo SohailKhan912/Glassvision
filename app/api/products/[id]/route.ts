@@ -1,12 +1,14 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getDatabase } from "@/lib/mongodb"
+import mongoose from "mongoose"
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params
     const db = await getDatabase()
     const productsCollection = db.collection("products")
 
-    const product = await productsCollection.findOne({ id: params.id })
+    const product = await productsCollection.findOne({ _id: new (mongoose as any).Types.ObjectId(id) })
 
     if (!product) {
       return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 })
@@ -19,14 +21,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const updates = await request.json()
+    const { id } = await context.params
     const db = await getDatabase()
     const productsCollection = db.collection("products")
 
     const result = await productsCollection.updateOne(
-      { id: params.id },
+      { _id: new (mongoose as any).Types.ObjectId(id) },
       {
         $set: {
           ...updates,
@@ -46,12 +49,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params
     const db = await getDatabase()
     const productsCollection = db.collection("products")
 
-    const result = await productsCollection.deleteOne({ id: params.id })
+    const result = await productsCollection.deleteOne({ _id: new (mongoose as any).Types.ObjectId(id) })
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 })

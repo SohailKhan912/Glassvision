@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  
-  typescript: {
-    ignoreBuildErrors: true,
+  reactStrictMode: true,
+  // Add empty turbopack config to silence Next 16 error while keeping compatibility
+  turbopack: {},
+  webpack: (config) => {
+    return config;
   },
-  images: {
-    unoptimized: true,
-  },
-}
+};
 
-export default nextConfig
+export default nextConfig;
