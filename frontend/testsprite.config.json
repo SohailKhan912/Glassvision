@@ -1,0 +1,36 @@
+{
+  "projectName": "glassvision",
+  "projectType": "fullstack",
+  "frontend": {
+    "type": "nextjs",
+    "port": 3000,
+    "path": ".",
+    "framework": "next",
+    "language": "typescript"
+  },
+  "backend": {
+    "type": "express",
+    "port": 5000,
+    "path": ".",
+    "framework": "express",
+    "language": "javascript"
+  },
+  "database": {
+    "type": "mongodb",
+    "uri": "mongodb://127.0.0.1:27017/glassvision"
+  },
+  "testScope": "codebase",
+  "testTypes": [
+    "unit",
+    "integration",
+    "e2e",
+    "api"
+  ],
+  "entryPoints": {
+    "frontend": "app/page.tsx",
+    "backend": "server.js"
+  },
+  "apiBaseUrl": "http://localhost:5000",
+  "clientBaseUrl": "http://localhost:3000"
+}
+
