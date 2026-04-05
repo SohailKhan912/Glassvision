@@ -1,14 +1,13 @@
 import "./repeat-guard";
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Inter } from "next/font/google"
 import { CartProvider } from "@/components/cart-context"
 import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "GlassVision - Premium Glass Doors",
@@ -26,7 +25,7 @@ export default function RootLayout({
       <head>
         <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
       </head>
-      <body className={`font-sans antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         <AuthProvider>
           <CartProvider>{children}</CartProvider>
         </AuthProvider>
