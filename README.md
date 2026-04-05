@@ -50,7 +50,7 @@ cd glassvision
    ```
 2. Install dependencies:
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
 3. Create a `.env` file based on `.env.example`:
    ```bash
@@ -69,7 +69,7 @@ cd glassvision
    ```
 2. Install dependencies:
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
 3. Create a `.env.local` file based on `.env.example`:
    ```bash
