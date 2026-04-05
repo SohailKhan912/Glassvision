@@ -13,6 +13,7 @@
     "test": "jest",
     "test:watch": "jest --watch"
   },
+  "installCommand": "npm install --legacy-peer-deps",
   "dependencies": {
     "@aws-sdk/credential-providers": "latest",
     "@google/model-viewer": "^4.1.0",
