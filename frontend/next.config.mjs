@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   // Add empty turbopack config to silence Next 16 error while keeping compatibility
-  turbopack: {},
+  //turbopack: {},
   webpack: (config) => {
     return config;
   },
