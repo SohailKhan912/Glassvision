@@ -12,5 +12,8 @@
     "build:frontend": "npm run build --prefix frontend",
     "start:frontend": "npm run start --prefix frontend",
     "start:backend": "npm run start --prefix backend"
+  },
+  "dependencies": {
+    "nodemon": "^3.1.14"
   }
 }
