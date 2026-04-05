@@ -67,3 +67,4 @@ export const authAPI = {
     return apiRequest("/api/admin/orders", { method: "GET" })
   },
 };
+
