@@ -1,0 +1,29 @@
+# Next.js build & cache
+.next/
+out/
+dist/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-debug.log
+pnpm-debug.log
+
+# Env
+.env
+.env.local
+.env.development
+.env.production
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# VSCode
+.vscode/
+
+# Temp files
+*.tmp
