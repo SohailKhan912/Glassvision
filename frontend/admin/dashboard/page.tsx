@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   const updateStatus = async (id: string, status: string) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/orders/${id}`,
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/orders/${id}`,
         {
           method: "PUT",
           headers: {
