@@ -15,11 +15,7 @@ import { useAuth } from "@/components/auth-provider"
 export default function AdminDashboard() {
   const router = useRouter()
   const { isAdmin, loading } = useAuth()
-console.log("ADMIN PAGE DEBUG");
-console.log("loading =", loading);
-console.log("isAdmin =", isAdmin);
-console.log("localStorage admin =", typeof window !== "undefined" ? localStorage.getItem("admin") : null);
-console.log("localStorage token =", typeof window !== "undefined" ? localStorage.getItem("token") : null);
+
   const [activeTab, setActiveTab] = useState("overview")
 
   useEffect(() => {
