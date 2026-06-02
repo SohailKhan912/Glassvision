@@ -6,12 +6,14 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dns from "node:dns";
+import productRoutes from "./routes/productRoutes.js";
 
 import adminRoutes from "./routes/adminRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import emailRoutes from "./routes/emailRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+
 
 // Fix DNS issues with Atlas
 dns.setServers(['8.8.8.8', '8.8.4.4']);
@@ -52,7 +54,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/auth", authRoutes);
-
+app.use("/api/products", productRoutes);
 app.get("/", (req, res) => {
   res.send("✅ GlassVision Backend is running smoothly!");
 });

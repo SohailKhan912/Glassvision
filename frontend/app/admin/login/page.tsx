@@ -16,22 +16,12 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      let response: Response | null = null;
-      try {
-        response = await fetch(`/api/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-      } catch {}
-      if (!response || !response.ok) {
-        const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000";
-        response = await fetch(`${API_BASE}/api/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-      }
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3003";
+      const response = await fetch(`${API_BASE}/api/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       console.log("📥 Admin login response status:", response.status);
 

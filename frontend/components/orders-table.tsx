@@ -25,7 +25,26 @@ export function OrdersTable({ limit = 10 }: OrdersTableProps) {
   async function fetchOrders() {
     try {
       setLoading(true)
-      const response = await fetch("/api/admin/orders")
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3003";
+      const response = await fetch(`${API_BASE}/api/admin/orders`)
+      
+      console.log("📦 Orders request URL:", `${API_BASE}/api/admin/orders`);
+      console.log("📦 Response status:", response.status);
+      console.log("📦 Response content-type:", response.headers.get("content-type"));
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("📦 Invalid response (not ok:", text.substring(0, 200));
+        throw new Error("Failed to fetch orders");
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("📦 Invalid content-type, response (first 200 chars:", text.substring(0, 200));
+        throw new Error("Expected JSON, got HTML");
+      }
+
       const data = await response.json()
 
       if (data.success) {
@@ -53,7 +72,8 @@ export function OrdersTable({ limit = 10 }: OrdersTableProps) {
 
   async function updateOrderStatus(orderId: string, newStatus: string) {
     try {
-      const response = await fetch(`/api/admin/orders/${orderId}`, {
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3003";
+      const response = await fetch(`${API_BASE}/api/admin/orders/${orderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),

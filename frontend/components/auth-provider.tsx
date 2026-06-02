@@ -31,15 +31,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function loadFromStorage() {
     try {
       if (typeof window === "undefined") return
-      const storedToken = localStorage.getItem("token") || localStorage.getItem("adminToken")
-      const storedUser = localStorage.getItem("user") || localStorage.getItem("admin")
-      if (storedToken && storedUser) {
-        setToken(storedToken)
-        setUser(JSON.parse(storedUser))
-      } else {
-        setToken(null)
-        setUser(null)
-      }
+     const storedToken = localStorage.getItem("adminToken")
+const storedUser = localStorage.getItem("admin")
+console.log("AUTH DEBUG");
+console.log("storedToken =", storedToken);
+console.log("storedUser =", storedUser);
+
+if (storedToken && storedUser) {
+  setToken(storedToken)
+  setUser(JSON.parse(storedUser))
+} else {
+  setToken(null)
+  setUser(null)
+}
     } catch (err) {
       console.log("Error reading auth from storage:", err)
     }

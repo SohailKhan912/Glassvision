@@ -35,7 +35,8 @@ interface Product {
   image?: string
   features?: string[]
 }
-
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3003"
 export default function ProductsManagement() {
   const router = useRouter()
   const { isAdmin, loading: authLoading } = useAuth()
@@ -68,19 +69,26 @@ export default function ProductsManagement() {
     }
   }, [isAdmin, authLoading, router])
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true)
-      const res = await fetch("/api/products")
-      const data = await res.json()
-      setProducts(data.products || data || [])
-    } catch (error: any) {
-      toast.error(error.message || "Failed to fetch products")
-    } finally {
-      setLoading(false)
-    }
-  }
+  
+ const fetchProducts = async () => {
+  try {
+    setLoading(true)
 
+    const res = await fetch(`${API_BASE}/api/products`)
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`)
+    }
+
+    const data = await res.json()
+
+    setProducts(data.products || [])
+  } catch (error: any) {
+    toast.error(error.message || "Failed to fetch products")
+  } finally {
+    setLoading(false)
+  }
+}
   const handleCreate = async () => {
     try {
       const productData = {
@@ -94,7 +102,7 @@ export default function ProductsManagement() {
         features: formData.features ? formData.features.split(",").map((f) => f.trim()) : [],
       }
 
-      const res = await fetch("/api/products", {
+      const res = await fetch(`${API_BASE}/api/products`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(productData),
@@ -125,7 +133,7 @@ export default function ProductsManagement() {
       }
 
       const id = (editingProduct as any)._id || (editingProduct as any).id
-      const res = await fetch(`/api/products/${id}`, {
+      const res = await fetch(`${API_BASE}/api/products/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(productData),
@@ -145,7 +153,9 @@ export default function ProductsManagement() {
     if (!confirm("Are you sure you want to delete this product?")) return
 
     try {
-      const res = await fetch(`/api/products/${id}`, { method: "DELETE" })
+     const res = await fetch(`${API_BASE}/api/products/${id}`, {
+  method: "DELETE",
+        })
       if (!res.ok) throw new Error("Failed to delete product")
       toast.success("Product deleted successfully!")
       fetchProducts()

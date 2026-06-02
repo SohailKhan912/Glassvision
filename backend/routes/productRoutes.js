@@ -1,15 +1,42 @@
-const express = require("express");
+import express from "express";
+import Product from "../models/Product.js";
+
 const router = express.Router();
 
-// Placeholder product routes
-// These will be expanded as needed
+// GET all products
+router.get("/", async (req, res) => {
+  try {
+    const products = await Product.find().lean();
 
-router.get("/", (req, res) => {
-  res.json({ message: "Products endpoint" });
+    res.json({
+      success: true,
+      products,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch products",
+    });
+  }
 });
 
-router.post("/", (req, res) => {
-  res.json({ message: "Create product endpoint" });
+// CREATE product
+router.post("/", async (req, res) => {
+  try {
+    const product = await Product.create(req.body);
+
+    res.status(201).json({
+      success: true,
+      product,
+    });
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create product",
+    });
+  }
 });
 
-module.exports = router;
+export default router;
