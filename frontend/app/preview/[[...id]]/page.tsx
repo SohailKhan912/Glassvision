@@ -1,11 +1,13 @@
 "use client"
 
+
+import { useState, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { PreviewSection } from "@/components/preview-section"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+
 import Link from "next/link"
 import { useCart } from "@/components/cart-context"
 
@@ -39,8 +41,17 @@ const doorModels = {
   },
 }
 
-export default function PreviewPage({ params }: { params: { id?: string[] } }) {
-  const modelId = params.id?.[0] || "1"
+export default function PreviewPage({
+  params,
+}: {
+  params: Promise<{ id?: string[] }>
+}) {  const [modelId, setModelId] = useState("1")
+
+useEffect(() => {
+  params.then((resolvedParams) => {
+    setModelId(resolvedParams.id?.[0] || "1")
+  })
+}, [params])
   const model = (doorModels as any)[modelId] || (doorModels as any)[1]
   const [config, setConfig] = useState({
     ...model,
