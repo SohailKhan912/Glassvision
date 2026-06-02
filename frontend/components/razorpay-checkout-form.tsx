@@ -63,7 +63,7 @@ export function RazorpayCheckoutForm({ finalTotal }: RazorpayCheckoutFormProps) 
       // Try Next.js API route first (proxy), fallback to direct backend
       let res
       try {
-        res = await fetch(`/api/payment/order`, {
+        res = await fetch(`${API_BASE}/api/payment/order`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ amount }),
